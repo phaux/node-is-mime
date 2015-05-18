@@ -1,5 +1,7 @@
 # Is Mime
 
+[![Build Status](https://travis-ci.org/phaux/node-is-mime.svg?branch=master)](https://travis-ci.org/phaux/node-is-mime)
+
 Checks whether a buffer or stream is a valid MIME type.
 Checks known byte offsets for
 [magic numbers](https://en.wikipedia.org/wiki/Magic_number_%28programming%29).
