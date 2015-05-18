@@ -1,0 +1,40 @@
+{
+  "name": "is-mime",
+  "version": "0.1.0",
+  "description": "Check if stream or buffer is a valid mime-type",
+  "scripts": {
+	"test": "mocha --compilers coffee:coffee-script/register"
+  },
+  "repository": {
+	"type": "git",
+	"url": "https://github.com/phaux/node-is-mime"
+  },
+  "keywords": [
+	"mime",
+	"type",
+	"data",
+	"buffer",
+	"stream",
+	"binary",
+	"magic number",
+	"file signature",
+	"validate"
+  ],
+  "author": "phaux <phaux4@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+	"url": "https://github.com/phaux/node-is-mime/issues"
+  },
+  "homepage": "https://github.com/phaux/node-is-mime",
+  "devDependencies": {
+	"chai": "^2.3.0",
+	"chai-as-promised": "^5.0.0",
+	"coffee-script": "^1.9.2",
+	"mocha": "^2.2.5"
+  },
+  "dependencies": {
+	"buffertools": "^2.1.2",
+	"concat-stream": "^1.4.8",
+	"promise": "^7.0.1"
+  }
+}
