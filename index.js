@@ -1,6 +1,4 @@
 var refEntries = require('./magic-numbers')
-  , Promise = Promise || require('promise')
-  , concat = require('concat-stream')
   , btools = require('buffertools')
   , PassThrough = require('stream').PassThrough
 
