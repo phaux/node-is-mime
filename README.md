@@ -29,7 +29,7 @@ checker.on('mimetype', function(mimetype) {
 	assert.equal(mimetype, 'image/jpeg')
 
 	// also sets a `mimetype` property on stream object itself
-	assert.equal(stream.mimetype, 'image/jpeg')
+	assert.equal(checker.mimetype, 'image/jpeg')
 })
 
 input.pipe(checker)
