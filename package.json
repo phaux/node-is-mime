@@ -1,6 +1,6 @@
 {
   "name": "is-mime",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Check if stream or buffer is a valid mime-type",
   "scripts": {
     "test": "mocha --compilers coffee:coffee-script/register"
