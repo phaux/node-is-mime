@@ -1,103 +1,124 @@
-var magicNumbers = require('./magic-numbers')
+var refEntries = require('./magic-numbers')
   , Promise = Promise || require('promise')
   , concat = require('concat-stream')
   , btools = require('buffertools')
+  , PassThrough = require('stream').PassThrough
 
-function checkStream(mime, stream) {
+function checkStream(mimes) {
 
-	if (!(mime in magicNumbers))
-		throw Error("Unsupported mime type: " + mime)
+	var stream   = new PassThrough()
+	  , checkers = []
 
-	var ref      = magicNumbers[mime]
-	  , refBuffs = ref.data
-	  , offset   = ref.offset || 0
-	  , chunkSz  = 0
-	  , chunk    = Buffer(0)
+	// force it to be array
+	mimes = [].concat(mimes)
 
-	if (!Array.isArray(refBuffs)) refBuffs = [refBuffs]
+	mimes.forEach(function(mime) {
 
-	refBuffs.forEach(function(refBuff) {
-		if (refBuff.length > chunkSz) chunkSz = refBuff.length
+		if (!(mime in refEntries))
+			throw Error("Unsupported mime type: " + mime)
+
+		// TODO allow functions as checkers
+		var refEntry = refEntries[mime]
+		  , refBuffs = refEntry.data
+
+		refBuffs = [].concat(refBuffs)
+
+		refBuffs.forEach(function(refBuff) {
+			checkers.push({
+				mime:   mime,
+				buffer: refBuff,
+				offset: refEntry.offset || 0,
+				length: refBuff.length,
+			})
+		})
+
 	})
 
-	stream.on('data', checker)
+	var chunk  = Buffer(0)
+	  , minLen = 0
 
-	function checker(data) {
+	// compute the number of first bytes required to buffer
+	checkers.forEach(function(checker) {
+		var len = checker.offset + checker.length
+		if (len > minLen) minLen = len
+	})
+
+	stream.on('data', checkerFn)
+
+	function checkerFn(data) {
 		chunk = Buffer.concat([chunk, data])
-		if (chunk.length >= offset + chunkSz) {
-			stream.removeListener('data', checker)
-			var ok = false
-			refBuffs.forEach(function(refBuff) {
-				var slice = chunk.slice(offset, refBuff.length)
-				if (btools.equals(slice, refBuff)) {
-					ok = true
+		if (chunk.length >= minLen) {
+			stream.removeListener('data', checkerFn)
+			var result = null
+			checkers.forEach(function(checker) {
+				var slice = chunk.slice(checker.offset, checker.length)
+				if (btools.equals(slice, checker.buffer)) {
+					result = checker.mime
 				}
 			})
-			if (ok) {
-				stream.mimetype = mime
-				stream.emit('mimetype', mime)
+			if (result) {
+				stream.mimetype = result
+				stream.emit('mimetype', result)
 			}
 		}
 	}
 
+	return stream
+
 }
 
-function checkBuffer(mime, buffer) {
+function checkBuffer(mimes, buffer) {
 
-	if (!(mime in magicNumbers))
-		throw Error("Unsupported mime type: " + mime)
+	var checkers = []
 
-	var ref      = magicNumbers[mime]
-	  , refBuffs = ref.data
-	  , offset   = ref.offset || 0
-	  , chunkSz  = 0
-	  , ok       = false
+	// force it to be array
+	mimes = [].concat(mimes)
 
-	if (!Array.isArray(refBuffs)) refBuffs = [refBuffs]
+	mimes.forEach(function(mime) {
 
-	refBuffs.forEach(function(refBuff) {
-		if (refBuff.length > chunkSz) chunkSz = refBuff.length
-	})
+		if (!(mime in refEntries))
+			throw Error("Unsupported mime type: " + mime)
 
-	if (buffer.length >= offset + chunkSz) {
+		// TODO allow functions as checkers
+		var refEntry = refEntries[mime]
+		  , refBuffs = refEntry.data
+
+		refBuffs = [].concat(refBuffs)
+
 		refBuffs.forEach(function(refBuff) {
-			var slice = buffer.slice(offset, refBuff.length)
-			if (btools.equals(slice, refBuff)) {
-				ok = true
-			}
+			checkers.push({
+				mime:   mime,
+				buffer: refBuff,
+				offset: refEntry.offset || 0,
+				length: refBuff.length,
+			})
 		})
-	}
 
-	if (!ok) return false
-	return mime
-
-}
-
-function checkStreamBuffered(mime, stream, cb) {
-	var p = new Promise(function(resolve, reject) {
-		stream.pipe(concat(function(buffer) {
-			if (checkBuffer(mime, buffer)) {
-				resolve(mime)
-			}
-			else {
-				reject(Error("Stream is not valid " + mime))
-			}
-		}))
 	})
-	if (typeof cb === 'function') {
-		p.then(function() {
-			cb(null, mime)
-		}, function(err) {
-			cb(err)
+
+	var minLen = 0
+
+	// compute the minimum buffer size
+	checkers.forEach(function(checker) {
+		var len = checker.offset + checker.length
+		if (len > minLen) minLen = len
+	})
+
+	var result = null
+	if (buffer.length >= minLen) {
+		checkers.forEach(function(checker) {
+			var slice = buffer.slice(checker.offset, checker.length)
+			if (btools.equals(slice, checker.buffer)) {
+				result = checker.mime
+			}
 		})
 	}
-	else {
-		return p
-	}
+
+	return result
+
 }
 
 module.exports = {
 	checkStream: checkStream,
 	checkBuffer: checkBuffer,
-	checkStreamBuffered: checkStreamBuffered,
 }

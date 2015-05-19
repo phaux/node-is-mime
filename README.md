@@ -6,22 +6,24 @@ Checks whether a buffer or stream is a valid MIME type.
 Checks known byte offsets for
 [magic numbers](https://en.wikipedia.org/wiki/Magic_number_%28programming%29).
 
-## Examples
+# Examples
 
 Checking streams:
 
 ```js
 var fs = require('fs')
+  , assert = require('assert')
   , isMime = require('is-mime')
-  , stream = fs.createReadStream(__dirname + '/image.jpg')
+  , input, checker
 
-// TODO allow passing an array of types
-isMime.checkStream('image/jpeg', stream)
-isMime.checkStream('image/png', stream)
+input = fs.createReadStream(__dirname + '/image.jpg')
 
-stream.on('mimetype', function(mimetype) {
-	// emitted when it is certain that stream contains type
-	// usually after few first `data` events
+// checker is a PassThrough stream that emits `mimetype` event
+checker = isMime.checkStream(['image/jpeg', 'image/png'])
+
+checker.on('mimetype', function(mimetype) {
+	// emitted once it is certain that stream contains
+	// one of the provided types
 
 	// argument is the detected mime type
 	assert.equal(mimetype, 'image/jpeg')
@@ -30,15 +32,38 @@ stream.on('mimetype', function(mimetype) {
 	assert.equal(stream.mimetype, 'image/jpeg')
 })
 
-// use the stream like you would normally
-// here we just discard the data
-stream.resume()
+input.pipe(checker)
+checker.resume() // discard data
+```
+
+Copy a file and print the detected MIME type:
+
+```js
+var fs = require('fs')
+  , isMime = require('is-mime')
+
+fs.createReadStream(__dirname + '/image.png')
+.pipe(
+	isMime.checkStream([
+		'image/jpeg',
+		'image/png',
+		'image/gif',
+	])
+	.on('mimetype', console.log)
+)
+.pipe(
+	fs.createWriteStream(__dirname + '/image2.png')
+	.on('end', function() {
+		console.log('Copying finished')
+	})
+)
 ```
 
 Checking buffers:
 
 ```js
 var fs = require('fs')
+  , assert = require('assert')
   , isMime = require('is-mime')
 
 fs.readFile(__dirname + '/image.png', function(err, buffer) {
@@ -47,10 +72,11 @@ fs.readFile(__dirname + '/image.png', function(err, buffer) {
 	// simply pass a type and buffer to `checkBuffer`
 	// it will return the type string or null
 	assert.ok(isMime.checkBuffer('image/png', buffer))
+	// first argument can be an array too
 })
 ```
 
-## Supported MIME types
+# Supported MIME types
 
 - image/png
 - image/jpeg
@@ -60,7 +86,3 @@ fs.readFile(__dirname + '/image.png', function(err, buffer) {
 - audio/ogg (Vorbis, Opus)
 - video/webm
 - video/mp4
-
-## API
-
-TODO
