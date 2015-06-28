@@ -33,6 +33,7 @@
     "mocha": "^2.2.5"
   },
   "dependencies": {
-    "buffertools": "^2.1.2"
+    "buffer-equal": "0.0.1",
+    "promise": "~7.0.3"
   }
 }

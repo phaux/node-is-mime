@@ -1,7 +1,6 @@
-{checkStream, checkBuffer} = require '../'
+{checkBuffer, checkStream, checkFile} = require '../'
 
-chai = require 'chai'
-expect = chai.expect
+{expect} = chai = require 'chai'
 chai.use require 'chai-as-promised'
 
 {createReadStream, readFile} = require 'fs'
@@ -34,6 +33,26 @@ tests = [
   result: null
 ]
 
+describe "#checkBuffer()", -> tests.forEach (test) ->
+  filename = "#{__dirname}/media/#{test.file}"
+  types = test.types ? test.result
+  types = [types] unless Array.isArray types
+
+  if test.result
+    it "should validate #{test.file} file as #{types}", (done) ->
+      readFile filename, (err, buffer) ->
+        done err if err
+        expect checkBuffer types, buffer
+        .to.equal test.result
+        done()
+  else
+    it "should reject #{test.file} file as #{types}", (done) ->
+      readFile filename, (err, buffer) ->
+        done err if err
+        expect checkBuffer types, buffer
+        .to.not.be.ok
+        done()
+
 describe "#checkStream()", -> tests.forEach (test) ->
   filename = "#{__dirname}/media/#{test.file}"
   types = test.types ? test.result
@@ -56,22 +75,16 @@ describe "#checkStream()", -> tests.forEach (test) ->
         done()
       stream.resume()
 
-describe "#checkBuffer()", -> tests.forEach (test) ->
+describe "#checkFile()", -> tests.forEach (test) ->
   filename = "#{__dirname}/media/#{test.file}"
   types = test.types ? test.result
   types = [types] unless Array.isArray types
 
   if test.result
-    it "should validate #{test.file} file as #{types}", (done) ->
-      readFile filename, (err, buffer) ->
-        done err if err
-        expect checkBuffer types, buffer
-        .to.equal test.result
-        done()
+    it "should validate #{test.file} file as #{types}", ->
+      expect checkFile types, filename
+      .to.eventually.equal test.result
   else
-    it "should reject #{test.file} file as #{types}", (done) ->
-      readFile filename, (err, buffer) ->
-        done err if err
-        expect checkBuffer types, buffer
-        .to.not.be.ok
-        done()
+    it "should reject #{test.file} file as #{types}", ->
+      expect checkFile types, filename
+      .to.eventually.not.be.ok
